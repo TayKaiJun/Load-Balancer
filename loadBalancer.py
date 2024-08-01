@@ -1,11 +1,24 @@
 import http.server
+import socket
 import urllib.request
+import threading
 import sys
+
+# List of backend servers with their ports
+backend_servers = [8080, 8081, 8082]
+current_server = 0
+lock = threading.Lock()
 
 class LoadBalancerHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        # Forward the request to the backend server on port 8000
-        url = f'http://localhost:8000{self.path}'
+        global current_server
+        with lock:
+            # Round-robin mechanism to select backend server
+            server_port = backend_servers[current_server]
+            current_server = (current_server + 1) % len(backend_servers)
+        
+        # Forward the request to the selected backend server
+        url = f'http://localhost:{server_port}{self.path}'
         try:
             with urllib.request.urlopen(url) as response:
                 # Read response from the backend server
